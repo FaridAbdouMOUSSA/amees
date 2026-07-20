@@ -14,28 +14,39 @@ class LikeController extends Controller
     {
         $epreuve = Epreuve::findOrFail($id);
 
+        if ($epreuve->user_id === Auth::id()) {
+            return response()->json(['error' => 'Vous ne pouvez pas liker votre propre épreuve.'], 403);
+        }
+
         $like = Like::where('user_id', Auth::id())
                     ->where('epreuve_id', $id)
                     ->first();
 
         if ($like) {
-            // 💔 unlike
             $like->delete();
+            $liked = false;
         } else {
-            // ❤️ like
             Like::create([
-                'user_id' => Auth::id(),
-                'epreuve_id' => $id
+                'user_id'    => Auth::id(),
+                'epreuve_id' => $id,
             ]);
 
-            // 🔔 notification (option AMEES)
-            Notification::create([
-                'user_id' => $epreuve->user_id,
-                'type' => 'like',
-                'message' => Auth::user()->name . " a aimé votre épreuve"
-            ]);
+            // Notification (optionnel)
+            if ($epreuve->user_id !== Auth::id()) {
+                \App\Models\Notification::create([
+                    'user_id' => $epreuve->user_id,
+                    'type'    => 'like',
+                    'message' => Auth::user()->name . " a aimé votre épreuve",
+                ]);
+            }
+            $liked = true;
         }
 
-        return back();
+        $count = $epreuve->likes()->count();
+
+        return response()->json([
+            'liked' => $liked,
+            'count' => $count
+        ]);
     }
 }

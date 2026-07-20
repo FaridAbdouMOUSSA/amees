@@ -28,14 +28,6 @@ return new class extends Migration
 
             $table->timestamps();
         });
-                // Migration actuelle ❌ MANQUE downloads
-        Schema::create('epreuves', function (Blueprint $table) {
-            // ... autres champs
-            $table->string('fichier');
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->timestamps();
-        });
-
     }
 
     /**

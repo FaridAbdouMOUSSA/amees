@@ -134,10 +134,10 @@
                         <div class="text-end">
                             <div class="like-container mb-1" data-epreuve-id="{{ $epreuve->id }}">
                                 <button type="button" 
-                                        class="btn like-btn @if(auth()->check() && $epreuve->isLikedByUser()) btn-danger @else btn-outline-danger @endif btn-sm like-toggle px-2 py-1"
+                                        class="btn like-btn @if(auth()->check() && $epreuve->likes()->where('user_id', auth()->id())->exists()) btn-danger @else btn-outline-danger @endif btn-sm like-toggle px-2 py-1"
                                         data-id="{{ $epreuve->id }}"
-                                        @if(auth()->check() && $epreuve->isLikedByUser()) style="background-color: #dc3545 !important; color: white !important; border-color: #dc3545 !important;" @endif
-                                        title="@if(auth()->check() && $epreuve->isLikedByUser()) Retirer le like @else Liker @endif">
+                                        @if(auth()->check() && $epreuve->likes()->where('user_id', auth()->id())->exists()) style="background-color: #dc3545 !important; color: white !important; border-color: #dc3545 !important;" @endif
+                                        title="@if(auth()->check() && $epreuve->likes()->where('user_id', auth()->id())->exists()) Retirer le like @else Liker @endif">
                                     <i class="fas fa-heart me-1"></i>
                                     <span class="like-count">{{ $epreuve->likes_count }}</span>
                                 </button>

@@ -1,29 +1,30 @@
-<nav x-data="{ open: false }" class="bg-white border-b border-gray-100">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-            <div class="flex">
-                <a href="{{ route('home') }}" class="text-xl font-bold">AMEES</a>
-                <div class="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
-                    <a href="{{ route('epreuves.index') }}">📚 Épreuves</a>
-                    @auth
-                        <a href="{{ route('ranking.top') }}">🏆 Classement</a>
-                    @endauth
-                </div>
+<nav class="navbar navbar-expand-md navbar-light bg-white shadow-sm">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="{{ route('home') }}">
+            AMEES
+        </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <div class="navbar-nav me-auto">
+                <a href="{{ route('epreuves.index') }}" class="nav-link">📚 Épreuves</a>
+                @auth
+                    <a href="{{ route('classement') }}" class="nav-link">🏆 Classement</a>
+                @endauth
             </div>
 
-            <div class="hidden sm:flex sm:items-center sm:ml-6">
+            <div class="navbar-nav ms-auto">
                 @auth
-                    <div class="ml-3 relative">
-                        <div class="flex items-center">
-                            <span>{{ auth()->user()->name }}</span>
-                            <form method="POST" action="{{ route('logout') }}" class="ml-3">
-                                @csrf
-                                <button>Logout</button>
-                            </form>
-                        </div>
-                    </div>
+                    <span class="nav-link">{{ auth()->user()->name }}</span>
+                    <form method="POST" action="{{ route('logout') }}" class="d-inline ms-2">
+                        @csrf
+                        <button type="submit" class="btn btn-link nav-link text-danger">Déconnexion</button>
+                    </form>
                 @else
-                    <a href="{{ route('login') }}">Connexion</a>
+                    <a href="{{ route('login') }}" class="nav-link">Connexion</a>
                 @endauth
             </div>
         </div>

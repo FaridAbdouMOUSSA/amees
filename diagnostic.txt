@@ -1,0 +1,450 @@
+🔍 LARAVEL FULL DIAGNOSTIC - mar. 12 mai 2026 16:14:12 WAT
+================================================
+📊 ENVIRONNEMENT
+PHP 8.4.20 (cli) (built: Apr 11 2026 07:08:00) (NTS)
+Copyright (c) The PHP Group
+Built by Debian
+Zend Engine v4.4.20, Copyright (c) Zend Technologies
+    with Zend OPcache v8.4.20, Copyright (c), by Zend Technologies
+Composer version 2.9.5 2026-01-29 11:40:53
+PHP version 8.4.20 (/usr/bin/php8.4)
+Run the "diagnose" command to get more detailed diagnostics output.
+Laravel Framework 13.6.0
+
+  Environment ......................................................................................................................................  
+  Application Name ......................................................................................................................... Laravel  
+  Laravel Version ........................................................................................................................... 13.6.0  
+  PHP Version ............................................................................................................................... 8.4.20  
+  Composer Version ........................................................................................................................... 2.9.5  
+  Environment ................................................................................................................................ local  
+  Debug Mode ............................................................................................................................... ENABLED  
+  URL .................................................................................................................................... localhost  
+  Maintenance Mode ............................................................................................................................. OFF  
+  Timezone ..................................................................................................................................... UTC  
+  Locale ........................................................................................................................................ en  
+
+  Cache ............................................................................................................................................  
+  Config ................................................................................................................................ NOT CACHED  
+  Events ................................................................................................................................ NOT CACHED  
+  Routes ................................................................................................................................ NOT CACHED  
+  Views ..................................................................................................................................... CACHED  
+
+  Drivers ..........................................................................................................................................  
+  Broadcasting ................................................................................................................................. log  
+  Cache ................................................................................................................................... database  
+  Database ................................................................................................................................... mysql  
+  Logs .............................................................................................................................. stack / single  
+  Mail ......................................................................................................................................... log  
+  Queue ................................................................................................................................... database  
+  Session ................................................................................................................................. database  
+
+  Storage ..........................................................................................................................................  
+  public/storage ............................................................................................................................ LINKED  
+
+
+📁 STRUCTURE
+./app/Http/Controllers/Admin/ClassementController.php
+./app/Http/Controllers/AdminController.php
+./app/Http/Controllers/Auth/AuthenticatedSessionController.php
+./app/Http/Controllers/Auth/ConfirmablePasswordController.php
+./app/Http/Controllers/Auth/EmailVerificationNotificationController.php
+./app/Http/Controllers/Auth/EmailVerificationPromptController.php
+./app/Http/Controllers/Auth/NewPasswordController.php
+./app/Http/Controllers/Auth/PasswordController.php
+./app/Http/Controllers/Auth/PasswordResetLinkController.php
+./app/Http/Controllers/Auth/RegisteredUserController.php
+./app/Http/Controllers/Auth/VerifyEmailController.php
+./app/Http/Controllers/Controller.php
+./app/Http/Controllers/EpreuveController.php
+./app/Http/Controllers/FavoriController.php
+./app/Http/Controllers/LikeController.php
+./app/Http/Controllers/ProfileController.php
+./app/Http/Controllers/RankingController.php
+./app/Http/Middleware/Admin.php
+./app/Http/Middleware/Kernel.php
+./app/Http/Middleware/RoleMiddleware.php
+Modèles:
+total 15
+drwxrwxrwx 1 root root 4096  4 mai   15:33 .
+drwxrwxrwx 1 root root    0 23 avril 09:55 ..
+-rwxrwxrwx 1 root root  113  4 mai   14:09 Abonnement.php
+-rwxrwxrwx 1 root root 1075 11 mai   17:02 Epreuve.php
+-rwxrwxrwx 1 root root  176 23 avril 11:11 Favori.php
+-rwxrwxrwx 1 root root  452 11 mai   16:39 Like.php
+-rwxrwxrwx 1 root root  295 23 avril 13:27 Notification.php
+-rwxrwxrwx 1 root root  117 23 avril 10:34 Telechargement.php
+-rwxrwxrwx 1 root root 1080 12 mai   16:00 User.php
+
+🛣️ ROUTES ADMIN
+
+  GET|HEAD   admin/classement ....................................................................................................................................................... admin.classement › RankingController@adminClassement
+  GET|HEAD   admin/dashboard ............................................................................................................................................................... admin.dashboard › RankingController@dashboard
+  DELETE     admin/decertifier/{id} ...................................................................................................................................................... admin.decertifier › AdminController@decertifier
+  GET|HEAD   admin/epreuves .................................................................................................................................................................... admin.epreuves › AdminController@epreuves
+  GET|HEAD   admin/etablissements .................................................................................................................................................. admin.etablissements › AdminController@etablissements
+  GET|HEAD   admin/notifications/check .................................................................................................................................... admin.notifications.check › AdminController@checkNotifications
+  POST       admin/notifications/read ................................................................................................................................. admin.notifications.read › AdminController@markNotificationsAsRead
+  POST       admin/valider/{id} .................................................................................................................................................................. admin.valider › AdminController@valider
+
+                                                                                                                                                                                                                        Showing [8] routes
+
+
+🗄️ MIGRATIONS
+
+  Migration name .................................................................................................................... Batch / Status  
+  0001_01_01_000000_create_users_table ..................................................................................................... [1] Ran  
+  0001_01_01_000001_create_cache_table ..................................................................................................... [1] Ran  
+  0001_01_01_000002_create_jobs_table ...................................................................................................... [1] Ran  
+  2026_04_23_091253_create_epreuves_table .................................................................................................. [1] Ran  
+  2026_04_23_091253_create_likes_table ..................................................................................................... [1] Ran  
+  2026_04_23_091254_create_abonnements_table ............................................................................................... [1] Ran  
+  2026_04_23_091254_create_favoris_table ................................................................................................... [1] Ran  
+  2026_04_23_091255_create_telechargements_table ........................................................................................... [1] Ran  
+  2026_04_23_104927_add_downloads_to_epreuves_table ........................................................................................ [1] Ran  
+  2026_04_23_122452_create_notifications_table ............................................................................................. [1] Ran  
+  2026_04_30_145125_add_champs_etablissement_to_users_table ................................................................................ [2] Ran  
+  2026_05_04_073550_add_type_epreuve_to_epreuves_table ..................................................................................... [3] Ran  
+  2026_05_11_151842_add_etablissement_id_to_epreuves_table ................................................................................. Pending  
+
+
+🧹 CACHE CLEAR
+
+   INFO  Clearing cached bootstrap files.  
+
+  config ............................................................................................................................... 4.43ms DONE
+  cache ............................................................................................................................... 39.06ms DONE
+  compiled ............................................................................................................................. 2.72ms DONE
+  events ............................................................................................................................... 1.43ms DONE
+  routes ............................................................................................................................... 1.40ms DONE
+  views ............................................................................................................................... 23.59ms DONE
+
+
+💾 BASE DONNÉES
+Tables count: 15
+User OK
+Epreuve OK
+
+📄 FICHIERS CRITIQUES
+=== RankingController.php ===
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\User;
+use App\Models\Epreuve;  
+use Carbon\Carbon;
+
+class RankingController extends Controller
+{
+    public function dashboard()
+    {
+        $stats = [
+            'total_epreuves' => Epreuve::count(),
+            'total_etablissements' => User::where('role', 'etablissement')->count(),
+            'total_certifies' => User::where('role', 'etablissement')->where('certifie', 1)->count(),
+            'total_downloads' => Epreuve::sum('downloads'),
+            'epreuves_aujourdhui' => Epreuve::whereDate('created_at', Carbon::today())->count(),
+        ];
+
+        $topEtablissements = User::where('role', 'etablissement')
+            ->withCount('epreuves')
+            ->orderBy('epreuves_count', 'desc')
+            ->limit(5)
+            ->get();
+
+        $recentEpreuves = Epreuve::with('user')
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+
+        return view('admin.dashboard', compact('stats', 'topEtablissements', 'recentEpreuves'));
+    }
+}
+=== User.php ===
+<?php
+
+namespace App\Models;
+
+use App\Models\Epreuve;
+use App\Models\Like;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+
+class User extends Authenticatable
+{
+    use HasFactory, Notifiable;
+
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+        'role',
+        'classe',
+        'serie',
+        'logo',
+        'certifie'
+    ];
+
+    protected $hidden = [
+        'password',
+        'remember_token'
+    ];
+
+    // Casts correct Laravel 10+
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+        ];
+    }
+
+        public function likes()
+    {
+        return $this->hasMany(Like::class);
+    }
+    // Dans app/Models/User.php
+    public function isAdmin()
+    {
+        return $this->role === 'admin';
+    }
+    // Ajoute dans app/Models/User.php
+    public function epreuves()
+    {
+        return $this->hasMany(Epreuve::class);
+    }
+}
+
+=== Epreuve.php ===
+<?php
+
+namespace App\Models;
+
+use App\Models\User;
+use App\Models\Like;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
+
+class Epreuve extends Model
+{
+    protected $fillable = [
+        'titre',
+        'enseignant',
+        'classe',
+        'serie',
+        'matiere',
+        'annee',
+        'semestre',
+        'type',
+        'type_epreuve',
+        'fichier',
+        'user_id',
+        'downloads',
+        'description'
+    ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function likes()
+    {
+        return $this->hasMany(Like::class);
+    }
+
+    // 🔥 MÉTHODE POUR VÉRIFIER SI UTILISATEUR A LIKÉ
+    public function isLikedByUser()
+    {
+        if (!Auth::check()) {
+            return false;
+        }
+        return $this->likes()->where('user_id', Auth::id())->exists();
+    }
+
+    public function getLikesCountAttribute()
+    {
+        return $this->likes()->count();
+    }
+
+    public function getIsLikedAttribute()
+    {
+        return $this->isLikedByUser();
+    }
+}
+📜 LOGS (20 dernières lignes)
+#45 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePostSize.php(27): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}()
+#46 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\ValidatePostSize->handle()
+#47 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/PreventRequestsDuringMaintenance.php(109): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}()
+#48 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\PreventRequestsDuringMaintenance->handle()
+#49 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Http/Middleware/HandleCors.php(61): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}()
+#50 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\HandleCors->handle()
+#51 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Http/Middleware/TrustProxies.php(58): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}()
+#52 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\TrustProxies->handle()
+#53 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/InvokeDeferredCallbacks.php(22): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}()
+#54 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\InvokeDeferredCallbacks->handle()
+#55 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePathEncoding.php(28): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}()
+#56 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\ValidatePathEncoding->handle()
+#57 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}()
+#58 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(175): Illuminate\\Pipeline\\Pipeline->then()
+#59 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(144): Illuminate\\Foundation\\Http\\Kernel->sendRequestThroughRouter()
+#60 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1220): Illuminate\\Foundation\\Http\\Kernel->handle()
+#61 /media/farid/amees/public/index.php(20): Illuminate\\Foundation\\Application->handleRequest()
+#62 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php(23): require_once('...')
+#63 {main}
+"} 
+
+🔧 .ENV (anonymisé)
+APP_NAME=XXX
+APP_ENV=XXX
+APP_KEY=XXX
+APP_DEBUG=XXX
+APP_URL=XXX
+APP_LOCALE=XXX
+APP_FALLBACK_LOCALE=XXX
+APP_FAKER_LOCALE=XXX
+APP_MAINTENANCE_DRIVER=XXX
+# APP_MAINTENANCE_STORE=XXX
+DB_CONNECTION=XXX
+# DB_HOST=XXX
+# DB_PORT=XXX
+DB_DATABASE=XXX
+DB_USERNAME=XXX
+DB_PASSWORD=XXX
+MAIL_MAILER=XXX
+MAIL_SCHEME=XXX
+MAIL_HOST=XXX
+MAIL_PORT=XXX
+MAIL_USERNAME=XXX
+MAIL_PASSWORD=XXX
+MAIL_FROM_ADDRESS=XXX
+MAIL_FROM_NAME=XXX
+VITE_APP_NAME=XXX
+
+📦 COMPOSER
+brianium/paratest                   7.20.0  Parallel testing for PHP
+brick/math                          0.14.8  Arbitrary-precision arithmetic library
+carbonphp/carbon-doctrine-types     3.2.0   Types to use Carbon in Doctrine
+dflydev/dot-access-data             3.0.3   Given a deep data structure, access data by dot notation.
+doctrine/deprecations               1.1.6   A small layer on top of trigger_error(E_USER_DEPRECATED) or PSR-3 logging with options to disable all deprecations or selectively for packages.
+doctrine/inflector                  2.1.0   PHP Doctrine Inflector is a small library that can perform string manipulations with regard to upper/lowercase and singular/plural forms of words.
+doctrine/lexer                      3.0.1   PHP Doctrine Lexer parser library that can be used in Top-Down, Recursive Descent Parsers.
+dragonmantank/cron-expression       3.6.0   CRON for PHP: Calculate the next or previous run date and determine if a CRON expression is due
+egulias/email-validator             4.0.4   A library for validating emails against several RFCs
+fakerphp/faker                      1.24.1  Faker is a PHP library that generates fake data for you.
+fidry/cpu-core-counter              1.3.0   Tiny utility to get the number of CPU cores.
+filp/whoops                         2.18.4  php error handling for cool kids
+fruitcake/php-cors                  1.4.0   Cross-origin resource sharing library for the Symfony HttpFoundation
+graham-campbell/result-type         1.1.4   An Implementation Of The Result Type
+guzzlehttp/guzzle                   7.10.0  Guzzle is a PHP HTTP client library
+guzzlehttp/promises                 2.3.0   Guzzle promises library
+guzzlehttp/psr7                     2.9.0   PSR-7 message implementation that also provides common utility methods
+guzzlehttp/uri-template             1.0.5   A polyfill class for uri_template of PHP
+hamcrest/hamcrest-php               2.1.1   This is the PHP port of Hamcrest Matchers
+jean85/pretty-package-versions      2.1.1   A library to get pretty versions strings of installed dependencies
+laravel/framework                   13.6.0  The Laravel Framework.
+laravel/pail                        1.2.6   Easily delve into your Laravel application's log files directly from the command line.
+laravel/pint                        1.29.1  An opinionated code formatter for PHP.
+laravel/prompts                     0.3.17  Add beautiful and user-friendly forms to your command-line applications.
+laravel/serializable-closure        2.0.12  Laravel Serializable Closure provides an easy and secure way to serialize closures in PHP.
+laravel/tinker                      3.0.2   Powerful REPL for the Laravel framework.
+league/commonmark                   2.8.2   Highly-extensible PHP Markdown parser which fully supports the CommonMark spec and GitHub-Flavored Markdown (GFM)
+league/config                       1.2.0   Define configuration arrays with strict schemas and access values with dot notation
+league/flysystem                    3.33.0  File storage abstraction for PHP
+league/flysystem-local              3.31.0  Local filesystem adapter for Flysystem.
+league/mime-type-detection          1.16.0  Mime-type detection for Flysystem
+league/uri                          7.8.1   URI manipulation library
+league/uri-interfaces               7.8.1   Common tools for parsing and resolving RFC3987/RFC3986 URI
+mockery/mockery                     1.6.12  Mockery is a simple yet flexible PHP mock object framework
+monolog/monolog                     3.10.0  Sends your logs to files, sockets, inboxes, databases and various web services
+myclabs/deep-copy                   1.13.4  Create deep copies (clones) of your objects
+nesbot/carbon                       3.11.4  An API extension for DateTime that supports 281 different languages.
+nette/schema                        1.3.5   📐 Nette Schema: validating data structures against a given Schema.
+nette/utils                         4.1.3   🛠  Nette Utils: lightweight utilities for string & array manipulation, image handling, safe JSON encoding/decoding, validation, slug or strong password generating etc.
+nikic/php-parser                    5.7.0   A PHP parser written in PHP
+nunomaduro/collision                8.9.4   Cli error handling for console/command-line PHP applications.
+nunomaduro/termwind                 2.4.0   It's like Tailwind CSS, but for the console.
+pestphp/pest                        4.6.3   The elegant PHP Testing Framework.
+pestphp/pest-plugin                 4.0.0   The Pest plugin manager
+pestphp/pest-plugin-arch            4.0.2   The Arch plugin for Pest PHP.
+pestphp/pest-plugin-laravel         4.1.0   The Pest Laravel Plugin
+pestphp/pest-plugin-mutate          4.0.1   Mutates your code to find untested cases
+pestphp/pest-plugin-profanity       4.2.1   The Pest Profanity Plugin
+phar-io/manifest                    2.0.4   Component for reading phar.io manifest information from a PHP Archive (PHAR)
+phar-io/version                     3.2.1   Library for handling version information and constraints
+phpdocumentor/reflection-common     2.2.0   Common reflection classes used by phpdocumentor to reflect the code structure
+phpdocumentor/reflection-docblock   6.0.3   With this component, a library can provide support for annotations via DocBlocks or otherwise retrieve information that is embedded in a DocBlock.
+phpdocumentor/type-resolver         2.0.0   A PSR-5 based resolver of Class names, Types and Structural Element Names
+phpoption/phpoption                 1.9.5   Option Type for PHP
+phpstan/phpdoc-parser               2.3.2   PHPDoc parser with support for nullable, intersection and generic types
+phpunit/php-code-coverage           12.5.6  Library that provides collection, processing, and rendering functionality for PHP code coverage information.
+phpunit/php-file-iterator           6.0.1   FilterIterator implementation that filters files based on a list of suffixes.
+phpunit/php-invoker                 6.0.0   Invoke callables with a timeout
+phpunit/php-text-template           5.0.0   Simple template engine.
+phpunit/php-timer                   8.0.0   Utility class for timing
+phpunit/phpunit                     12.5.23 The PHP Unit Testing framework.
+psr/clock                           1.0.0   Common interface for reading the clock.
+psr/container                       2.0.2   Common Container Interface (PHP FIG PSR-11)
+psr/event-dispatcher                1.0.0   Standard interfaces for event handling.
+psr/http-client                     1.0.3   Common interface for HTTP clients
+psr/http-factory                    1.1.0   PSR-17: Common interfaces for PSR-7 HTTP message factories
+psr/http-message                    2.0     Common interface for HTTP messages
+psr/log                             3.0.2   Common interface for logging libraries
+psr/simple-cache                    3.0.0   Common interfaces for simple caching
+psy/psysh                           0.12.22 An interactive shell for modern PHP.
+ralouphie/getallheaders             3.0.3   A polyfill for getallheaders.
+ramsey/collection                   2.1.1   A PHP library for representing and manipulating collections.
+ramsey/uuid                         4.9.2   A PHP library for generating and working with universally unique identifiers (UUIDs).
+sebastian/cli-parser                4.2.0   Library for parsing CLI options
+sebastian/comparator                7.1.6   Provides the functionality to compare PHP values for equality
+sebastian/complexity                5.0.0   Library for calculating the complexity of PHP code units
+sebastian/diff                      7.0.0   Diff implementation
+sebastian/environment               8.1.0   Provides functionality to handle HHVM/PHP environments
+sebastian/exporter                  7.0.2   Provides the functionality to export PHP variables for visualization
+sebastian/global-state              8.0.2   Snapshotting of global state
+sebastian/lines-of-code             4.0.0   Library for counting the lines of code in PHP source code
+sebastian/object-enumerator         7.0.0   Traverses array structures and object graphs to enumerate all referenced objects
+sebastian/object-reflector          5.0.0   Allows reflection of object attributes, including inherited and non-public ones
+sebastian/recursion-context         7.0.1   Provides functionality to recursively process PHP variables
+sebastian/type                      6.0.3   Collection of value objects that represent the types of the PHP type system
+sebastian/version                   6.0.0   Library that helps with managing the version number of Git-hosted PHP projects
+staabm/side-effects-detector        1.0.5   A static analysis tool to detect side effects in PHP code
+symfony/clock                       8.0.8   Decouples applications from the system clock
+symfony/console                     8.0.8   Eases the creation of beautiful and testable command line interfaces
+symfony/css-selector                8.0.8   Converts CSS selectors to XPath expressions
+symfony/deprecation-contracts       3.6.0   A generic function and convention to trigger deprecation notices
+symfony/error-handler               8.0.8   Provides tools to manage errors and ease debugging PHP code
+symfony/event-dispatcher            8.0.8   Provides tools that allow your application components to communicate with each other by dispatching events and listening to them
+symfony/event-dispatcher-contracts  3.6.0   Generic abstractions related to dispatching event
+symfony/finder                      8.0.8   Finds files and directories via an intuitive fluent interface
+symfony/http-foundation             8.0.8   Defines an object-oriented layer for the HTTP specification
+symfony/http-kernel                 8.0.8   Provides a structured process for converting a Request into a Response
+symfony/mailer                      8.0.8   Helps sending emails
+symfony/mime                        8.0.8   Allows manipulating MIME messages
+symfony/polyfill-ctype              1.36.0  Symfony polyfill for ctype functions
+symfony/polyfill-intl-grapheme      1.36.0  Symfony polyfill for intl's grapheme_* functions
+symfony/polyfill-intl-idn           1.36.0  Symfony polyfill for intl's idn_to_ascii and idn_to_utf8 functions
+symfony/polyfill-intl-normalizer    1.36.0  Symfony polyfill for intl's Normalizer class and related functions
+symfony/polyfill-mbstring           1.36.0  Symfony polyfill for the Mbstring extension
+symfony/polyfill-php80              1.36.0  Symfony polyfill backporting some PHP 8.0+ features to lower PHP versions
+symfony/polyfill-php84              1.36.0  Symfony polyfill backporting some PHP 8.4+ features to lower PHP versions
+symfony/polyfill-php85              1.36.0  Symfony polyfill backporting some PHP 8.5+ features to lower PHP versions
+symfony/polyfill-uuid               1.36.0  Symfony polyfill for uuid functions
+symfony/process                     8.0.8   Executes commands in sub-processes
+symfony/routing                     8.0.8   Maps an HTTP request to a set of configuration variables
+symfony/service-contracts           3.6.1   Generic abstractions related to writing services
+symfony/string                      8.0.8   Provides an object-oriented API to strings and deals with bytes, UTF-8 code points and grapheme clusters in a unified way
+symfony/translation                 8.0.8   Provides tools to internationalize your application
+symfony/translation-contracts       3.6.1   Generic abstractions related to translation
+symfony/uid                         8.0.8   Provides an object-oriented API to generate and represent UIDs
+symfony/var-dumper                  8.0.8   Provides mechanisms for walking through any arbitrary PHP variable
+ta-tikoma/phpunit-architecture-test 0.8.7   Methods for testing application architecture
+theseer/tokenizer                   2.0.1   A small library for converting tokenized PHP source code into XML and potentially other formats
+tijsverkoyen/css-to-inline-styles   2.4.0   CssToInlineStyles is a class that enables you to convert HTML-pages/files into HTML-pages/files with inline styles. This is very useful when you're sending emails.
+vlucas/phpdotenv                    5.6.3   Loads environment variables from `.env` to `getenv()`, `$_ENV` and `$_SERVER` automagically.
+voku/portable-ascii                 2.1.0   Portable ASCII library - performance optimized (ascii) string functions for php.
+webmozart/assert                    2.3.0   Assertions to validate method input/output with nice error messages.
+
+✅ DIAGNOSTIC TERMINÉ ! Copie diagnostic.txt

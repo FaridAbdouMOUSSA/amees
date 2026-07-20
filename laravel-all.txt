@@ -1,0 +1,803 @@
+🔥 LARAVEL COPY-ALL - mar. 12 mai 2026 16:19:00 WAT
+================================================
+📊 ENVIRONNEMENT
+```bash
+PHP 8.4.20 (cli) (built: Apr 11 2026 07:08:00) (NTS)
+Copyright (c) The PHP Group
+Built by Debian
+Zend Engine v4.4.20, Copyright (c) Zend Technologies
+    with Zend OPcache v8.4.20, Copyright (c), by Zend Technologies
+Laravel Framework 13.6.0
+
+  Environment ......................................................................................................................................  
+  Application Name ......................................................................................................................... Laravel  
+  Laravel Version ........................................................................................................................... 13.6.0  
+  PHP Version ............................................................................................................................... 8.4.20  
+  Composer Version ........................................................................................................................... 2.9.5  
+  Environment ................................................................................................................................ local  
+  Debug Mode ............................................................................................................................... ENABLED  
+  URL .................................................................................................................................... localhost  
+  Maintenance Mode ............................................................................................................................. OFF  
+  Timezone ..................................................................................................................................... UTC  
+  Locale ........................................................................................................................................ en  
+
+  Cache ............................................................................................................................................  
+  Config ................................................................................................................................ NOT CACHED  
+  Events ................................................................................................................................ NOT CACHED  
+  Routes ................................................................................................................................ NOT CACHED  
+  Views ................................................................................................................................. NOT CACHED  
+
+  Drivers ..........................................................................................................................................  
+  Broadcasting ................................................................................................................................. log  
+  Cache ................................................................................................................................... database  
+  Database ................................................................................................................................... mysql  
+  Logs .............................................................................................................................. stack / single  
+  Mail ......................................................................................................................................... log  
+  Queue ................................................................................................................................... database  
+  Session ................................................................................................................................. database  
+
+  Storage ..........................................................................................................................................  
+  public/storage ............................................................................................................................ LINKED  
+```
+🛣️ ROUTES ADMIN
+```bash
+
+  GET|HEAD   admin/classement ....................................................................................................................................................... admin.classement › RankingController@adminClassement
+  GET|HEAD   admin/dashboard ............................................................................................................................................................... admin.dashboard › RankingController@dashboard
+  DELETE     admin/decertifier/{id} ...................................................................................................................................................... admin.decertifier › AdminController@decertifier
+  GET|HEAD   admin/epreuves .................................................................................................................................................................... admin.epreuves › AdminController@epreuves
+  GET|HEAD   admin/etablissements .................................................................................................................................................. admin.etablissements › AdminController@etablissements
+  GET|HEAD   admin/notifications/check .................................................................................................................................... admin.notifications.check › AdminController@checkNotifications
+  POST       admin/notifications/read ................................................................................................................................. admin.notifications.read › AdminController@markNotificationsAsRead
+  POST       admin/valider/{id} .................................................................................................................................................................. admin.valider › AdminController@valider
+
+                                                                                                                                                                                                                        Showing [8] routes
+
+```
+
+🗄️ MIGRATIONS
+```bash
+
+  Migration name .................................................................................................................... Batch / Status  
+  0001_01_01_000000_create_users_table ..................................................................................................... [1] Ran  
+  0001_01_01_000001_create_cache_table ..................................................................................................... [1] Ran  
+  0001_01_01_000002_create_jobs_table ...................................................................................................... [1] Ran  
+  2026_04_23_091253_create_epreuves_table .................................................................................................. [1] Ran  
+  2026_04_23_091253_create_likes_table ..................................................................................................... [1] Ran  
+  2026_04_23_091254_create_abonnements_table ............................................................................................... [1] Ran  
+  2026_04_23_091254_create_favoris_table ................................................................................................... [1] Ran  
+  2026_04_23_091255_create_telechargements_table ........................................................................................... [1] Ran  
+  2026_04_23_104927_add_downloads_to_epreuves_table ........................................................................................ [1] Ran  
+  2026_04_23_122452_create_notifications_table ............................................................................................. [1] Ran  
+  2026_04_30_145125_add_champs_etablissement_to_users_table ................................................................................ [2] Ran  
+  2026_05_04_073550_add_type_epreuve_to_epreuves_table ..................................................................................... [3] Ran  
+  2026_05_11_151842_add_etablissement_id_to_epreuves_table ................................................................................. Pending  
+
+```
+
+📄 app/Http/Controllers/RankingController.php
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\User;
+use App\Models\Epreuve;  
+use Carbon\Carbon;
+
+class RankingController extends Controller
+{
+    public function dashboard()
+    {
+        $stats = [
+            'total_epreuves' => Epreuve::count(),
+            'total_etablissements' => User::where('role', 'etablissement')->count(),
+            'total_certifies' => User::where('role', 'etablissement')->where('certifie', 1)->count(),
+            'total_downloads' => Epreuve::sum('downloads'),
+            'epreuves_aujourdhui' => Epreuve::whereDate('created_at', Carbon::today())->count(),
+        ];
+
+        $topEtablissements = User::where('role', 'etablissement')
+            ->withCount('epreuves')
+            ->orderBy('epreuves_count', 'desc')
+            ->limit(5)
+            ->get();
+
+        $recentEpreuves = Epreuve::with('user')
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+
+        return view('admin.dashboard', compact('stats', 'topEtablissements', 'recentEpreuves'));
+    }
+}```
+
+📄 app/Models/User.php
+```php
+<?php
+
+namespace App\Models;
+
+use App\Models\Epreuve;
+use App\Models\Like;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+
+class User extends Authenticatable
+{
+    use HasFactory, Notifiable;
+
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+        'role',
+        'classe',
+        'serie',
+        'logo',
+        'certifie'
+    ];
+
+    protected $hidden = [
+        'password',
+        'remember_token'
+    ];
+
+    // Casts correct Laravel 10+
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+        ];
+    }
+
+        public function likes()
+    {
+        return $this->hasMany(Like::class);
+    }
+    // Dans app/Models/User.php
+    public function isAdmin()
+    {
+        return $this->role === 'admin';
+    }
+    // Ajoute dans app/Models/User.php
+    public function epreuves()
+    {
+        return $this->hasMany(Epreuve::class);
+    }
+}
+```
+
+📄 app/Models/Epreuve.php
+```php
+<?php
+
+namespace App\Models;
+
+use App\Models\User;
+use App\Models\Like;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
+
+class Epreuve extends Model
+{
+    protected $fillable = [
+        'titre',
+        'enseignant',
+        'classe',
+        'serie',
+        'matiere',
+        'annee',
+        'semestre',
+        'type',
+        'type_epreuve',
+        'fichier',
+        'user_id',
+        'downloads',
+        'description'
+    ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function likes()
+    {
+        return $this->hasMany(Like::class);
+    }
+
+    // 🔥 MÉTHODE POUR VÉRIFIER SI UTILISATEUR A LIKÉ
+    public function isLikedByUser()
+    {
+        if (!Auth::check()) {
+            return false;
+        }
+        return $this->likes()->where('user_id', Auth::id())->exists();
+    }
+
+    public function getLikesCountAttribute()
+    {
+        return $this->likes()->count();
+    }
+
+    public function getIsLikedAttribute()
+    {
+        return $this->isLikedByUser();
+    }
+}```
+
+📄 app/Http/Controllers/AdminController.php
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\User;
+use App\Models\Epreuve;
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon;
+use Illuminate\View\View;
+
+class AdminController extends Controller 
+{
+
+    public function etablissements(Request $request): View|LengthAwarePaginator
+    {
+        $etablissements = User::where('role', 'etablissement')
+            ->when($request->certifie !== null, function($q) use ($request) {
+                $q->where('certifie', $request->certifie);
+            })
+            ->when($request->q, function($q) use ($request) {
+                $q->where(function($subQ) use ($request) {
+                    $subQ->where('name', 'like', '%'.trim($request->q).'%')
+                         ->orWhere('email', 'like', '%'.trim($request->q).'%');
+                });
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
+
+        $etablissements->getCollection()->transform(function (User $user) {
+            $user->epreuves_count = $user->epreuves()->count();
+            $user->downloads_total = $user->epreuves()->sum('downloads');
+            return $user;
+        });
+
+        return view('admin.etablissements', compact('etablissements'));
+    }
+
+
+    public function dashboard(): View
+    {
+        $stats = [
+            'total_epreuves' => Epreuve::count(),
+            'total_etablissements' => User::where('role', 'etablissement')->count(),
+            'total_certifies' => User::where('role', 'etablissement')->where('certifie', 1)->count(),
+            'total_downloads' => Epreuve::sum('downloads'),
+        ];
+
+        $today = today()->toDateString();
+        $nouveaux = Epreuve::whereDate('created_at', $today)->count();
+        
+        $lastCheck = session('last_notification_check', now()->subDay()->toDateString());
+        if ($lastCheck !== $today) {
+            session(['notifications_read' => false, 'last_notification_check' => $today]);
+        }
+        
+        $stats['nouveaux_aujourdhui'] = session('notifications_read', false) ? 0 : $nouveaux;
+        $stats['nouveaux_aujourdhui_reel'] = $nouveaux;
+
+        $top_etablissements = User::where('role', 'etablissement')
+            ->withCount('epreuves')
+            ->orderBy('epreuves_count', 'desc')
+            ->limit(5)
+            ->get();
+
+        $activite_recente = Epreuve::with('user')
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+
+        return view('admin.dashboard', compact('stats', 'top_etablissements', 'activite_recente'));
+    }
+
+
+    public function valider(Request $request, int $id)
+    {
+        $user = User::findOrFail($id);
+        
+        if ($user->role !== 'etablissement') {
+            return back()->with('error', '❌ Seuls les établissements peuvent être certifiés.');
+        }
+        
+        if ($user->certifie) {
+            return back()->with('warning', '⚠️ Cet établissement est déjà certifié.');
+        }
+        
+        $user->certifie = true;
+        $user->save();
+        
+        return back()->with('success', '✅ Établissement <strong>' . $user->name . '</strong> certifié avec succès !');
+    }
+
+
+    public function decertifier(Request $request, int $id)
+    {
+        $user = User::findOrFail($id);
+        
+        if ($user->role !== 'etablissement') {
+            return back()->with('error', '❌ Seuls les établissements peuvent être décertifiés.');
+        }
+        
+        if (!$user->certifie) {
+            return back()->with('warning', '⚠️ Cet établissement n\'est pas certifié.');
+        }
+        
+        $user->certifie = false;
+        $user->save();
+        
+        return back()->with('warning', '🔄 Établissement <strong>' . $user->name . '</strong> décertifié.');
+    }
+
+    public function profilEtablissement(User $user): View
+    {
+        if ($user->role !== 'etablissement') {
+            abort(404, 'Établissement non trouvé');
+        }
+        $epreuves = $user->epreuves()->withCount('likes')->latest()->paginate(12);
+        return view('etablissements.profil', compact('user', 'epreuves'));
+    }
+
+    public function editProfilEtablissement(User $user): View
+    {
+        if ($user->role !== 'etablissement' || $user->id !== Auth::id()) {
+            abort(403);
+        }
+        $communes = ['Adjarra','Adja-Ouèrè','Agbangnizoun','Aguégués','Akpro-Missérété','Allada','Aplahoué','Athiémé','Avrankou','Banikoara','Bantè','Bassila','Bembéréké','Bohicon','Bonou','Bopa','Boukoumbé','Cobly','Comé','Copargo','Covè','Cotonou','Dassa-Zoumè','Dangbo','Djakotomey','Djidja','Djougou','Dogbo','Glazoué','Gogounou','Grand-Popo','Houéyogbé','Ifangni','Kalalé','Kandi','Karimama','Kérou','Kétou','Klouékanmè','Kouandé','Kpomassè','Lalo','Lokossa','Malanville','Matéri','Natitingou','N\'Dali','Nikki','Ouidah','Ouaké','Ouèssè','Ouinhi','Parakou','Péhunco','Pèrèrè','Pobè','Porto-Novo','Sakété','Savalou','Savè','Ségbana','Sèmè-Kpodji','Sinendé','Sô-Ava','Tanguiéta','Tchaourou','Toffo','Tori-Bossito','Toviklin','Toucountouna','Za-Kpota','Zagnanado','Zè','Zogbodomey'];
+        return view('etablissements.edit-profil', compact('user', 'communes'));
+    }
+
+    public function updateProfilEtablissement(Request $request, User $user)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'telephone' => 'nullable|string|max:20',
+            'directeur' => 'nullable|string|max:255',
+            'commune' => 'nullable|string|max:100',
+            'description' => 'nullable|string',
+            'lien_localisation' => 'nullable|url',
+            'photo_profil' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+        ]);
+
+        if ($user->role !== 'etablissement' || $user->id !== Auth::id()) {
+            abort(403);
+        }
+
+        if ($request->name !== $user->name) {
+            if ($user->derniere_modification_nom && 
+                now()->diffInDays(Carbon::parse($user->derniere_modification_nom)) < 365) {
+                return back()->with('error', 'Nom changeable 1x/an seulement !');
+            }
+            $user->derniere_modification_nom = now();
+        }
+
+        if ($request->hasFile('photo_profil')) {
+            if ($user->photo_profil && Storage::disk('public')->exists($user->photo_profil)) {
+                Storage::disk('public')->delete($user->photo_profil);
+            }
+            $photoPath = $request->file('photo_profil')->store('photos-profils', 'public');
+            $user->photo_profil = $photoPath;
+        }
+
+        $user->update([
+            'name' => $request->name,
+            'telephone' => $request->telephone,
+            'directeur' => $request->directeur,
+            'commune' => $request->commune,
+            'description' => $request->description,
+            'lien_localisation' => $request->lien_localisation,
+        ]);
+
+        return redirect()->route('etablissement.profil', $user->fresh())
+                         ->with('success', 'Profil mis à jour !');
+    }
+
+    public function classementPublic(): View
+    {
+        $users = User::where('role', 'etablissement')
+            ->withCount('epreuves')
+            ->get()
+            ->map(function (User $user) {
+                $user->score = $user->epreuves_count * 10;
+                return $user;
+            })
+            ->sortByDesc('score')
+            ->take(10);
+
+        return view('ranking.top', compact('users'));
+    }
+
+    public function classementAdmin(): View
+    {
+        $stats = [
+            'total_epreuves' => Epreuve::count(),
+            'total_etablissements' => User::where('role', 'etablissement')->count(),
+            'total_certifies' => User::where('role', 'etablissement')->where('certifie', 1)->count(),
+            'total_downloads' => Epreuve::sum('downloads'),
+        ];
+
+        $classement = User::select('users.*')
+            ->withCount('epreuves as epreuves_count')
+            ->where('role', 'etablissement')
+            ->orderBy('epreuves_count', 'desc')
+            ->paginate(20);
+
+
+        $top_etablissements = User::where('role', 'etablissement')
+            ->withCount('epreuves')
+            ->orderBy('epreuves_count', 'desc')
+            ->limit(5)
+            ->get();
+
+        $activite_recente = Epreuve::with('user')
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+
+ 
+        return view('admin.classement', compact('stats', 'classement', 'top_etablissements', 'activite_recente'));
+    }
+
+    public function checkNotifications(Request $request): JsonResponse
+    {
+        $today = today()->toDateString();
+        $nouveaux = Epreuve::whereDate('created_at', $today)->count();
+        
+        return response()->json([
+            'nouveaux' => $nouveaux,
+            'read' => session('notifications_read', false)
+        ]);
+    }
+
+    public function markNotificationsAsRead(Request $request): JsonResponse
+    {
+        session(['notifications_read' => true]);
+        
+        return response()->json([
+            'success' => true, 
+            'message' => 'Notifications marquées comme lues !',
+            'count' => 0
+        ]);
+    }
+
+
+public function epreuves(Request $request)
+{
+    $epreuves = Epreuve::with(['user'])
+        ->when($request->q, function($query) use ($request) {
+            $query->where('titre', 'like', "%{$request->q}%")
+                  ->orWhere('description', 'like', "%{$request->q}%")
+                  ->orWhereHas('user', fn($q) => $q->where('name', 'like', "%{$request->q}%"));
+        })
+        ->latest()
+        ->paginate(12);
+
+    return view('admin.epreuves.index', compact('epreuves'));
+}
+}```
+
+📄 app/Http/Middleware/Admin.php
+```php
+<?php
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\Response;
+
+class Admin
+{
+    /**
+     * Handle an incoming request.
+     */
+    public function handle(Request $request, Closure $next): Response
+    {
+        // Vérifie si l'utilisateur est connecté ET admin
+        if (!Auth::check() || Auth::user()->role !== 'admin') {
+            abort(403, '❌ Accès admin requis.');
+        }
+
+        return $next($request);
+    }
+}```
+
+📄 routes/web.php
+```php
+<?php
+
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\EpreuveController;
+use App\Http\Controllers\FavoriController;
+use App\Http\Controllers\RankingController;
+use Illuminate\Support\Facades\Route;
+
+// 🔥 GUEST
+Route::get('/', fn() => view('home'))->name('home');
+
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
+    Route::post('/login', [AuthenticatedSessionController::class, 'store']);
+    Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
+    Route::post('/register', [RegisteredUserController::class, 'store']);
+});
+
+// 🔄 DASHBOARD → ÉPREUVES
+Route::get('/dashboard', fn() => redirect()->route('epreuves.index'))
+    ->middleware('auth')->name('dashboard');
+
+// 🔥 AUTHENTIFIÉES (tous users)
+Route::middleware('auth')->group(function () {
+    // Profile
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Épreuves
+    Route::prefix('epreuves')->name('epreuves.')->group(function () {
+        Route::get('/', [EpreuveController::class, 'index'])->name('index');
+        Route::get('/create', [EpreuveController::class, 'create'])->middleware('role:etablissement')->name('create');
+        Route::post('/', [EpreuveController::class, 'store'])->middleware('role:etablissement')->name('store');
+        Route::get('/search', [EpreuveController::class, 'search'])->name('search');
+        Route::get('/{epreuve}', [EpreuveController::class, 'show'])->name('show');
+        Route::get('/download/{epreuve}', [EpreuveController::class, 'download'])->name('download');
+        Route::post('/{epreuve}/like', [EpreuveController::class, 'toggleLike'])->name('like');
+    });
+
+    // 🔥 USER LIKES
+    Route::get('/user-likes', function() {
+        return response()->json([
+            'liked_epreuves' => Auth::user()->likes()->pluck('epreuve_id')
+        ]);
+    })->name('user.likes');
+
+    // Favoris
+    Route::post('/favori/{epreuve}', [FavoriController::class, 'toggle'])->name('favori.toggle');
+
+    // 🔥 CLASSEMENT PUBLIC (TOUS les users)
+    Route::get('/classement', [RankingController::class, 'classement'])->name('classement');
+
+    // Profils établissements
+    Route::get('/etablissement/{user}', [AdminController::class, 'profilEtablissement'])->name('etablissement.profil');
+    Route::middleware('role:etablissement')->group(function () {
+        Route::get('/etablissement/{user}/edit', [AdminController::class, 'editProfilEtablissement'])->name('etablissement.edit');
+        Route::put('/etablissement/{user}', [AdminController::class, 'updateProfilEtablissement'])->name('etablissement.update');
+    });
+
+    // Logout
+    Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
+});
+
+// 🔥 ADMIN (protégé) - TOUT centralisé
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/dashboard', [RankingController::class, 'dashboard'])->name('dashboard');
+    Route::get('/classement', [RankingController::class, 'adminClassement'])->name('classement'); // Admin complet
+    Route::get('/etablissements', [AdminController::class, 'etablissements'])->name('etablissements');
+    Route::get('/epreuves', [AdminController::class, 'epreuves'])->name('epreuves');
+    
+    Route::post('/valider/{id}', [AdminController::class, 'valider'])->name('valider');
+    Route::delete('/decertifier/{id}', [AdminController::class, 'decertifier'])->name('decertifier');
+    Route::get('/notifications/check', [AdminController::class, 'checkNotifications'])->name('notifications.check');
+    Route::post('/notifications/read', [AdminController::class, 'markNotificationsAsRead'])->name('notifications.read');
+});```
+
+📄 database/migrations/*epreuves*
+```php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('epreuves', function (Blueprint $table) {
+            $table->id();
+
+            $table->string('titre');
+            $table->string('enseignant')->nullable();
+            $table->string('classe');
+            $table->string('serie')->nullable();
+            $table->string('matiere');
+            $table->year('annee');
+            $table->string('semestre');
+            $table->string('type');
+            $table->string('fichier');
+
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+
+            $table->timestamps();
+        });
+                // Migration actuelle ❌ MANQUE downloads
+        Schema::create('epreuves', function (Blueprint $table) {
+            // ... autres champs
+            $table->string('fichier');
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->timestamps();
+        });
+
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('epreuves');
+    }
+};<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('epreuves', function (Blueprint $table) {
+            $table->integer('downloads')->default(0);
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('epreuves', function (Blueprint $table) {
+            $table->dropColumn('downloads');
+        });
+    }
+};<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up()
+    {
+        Schema::table('epreuves', function (Blueprint $table) {
+            $table->string('type_epreuve')->nullable()->after('semestre');
+        });
+    }
+
+    public function down()
+    {
+        Schema::table('epreuves', function (Blueprint $table) {
+            $table->dropColumn('type_epreuve');
+        });
+    }
+};<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up()
+    {
+        Schema::table('epreuves', function (Blueprint $table) {
+            $table->foreignId('etablissement_id')->nullable()->constrained()->after('user_id');
+        });
+    }
+
+    public function down()
+    {
+        Schema::table('epreuves', function (Blueprint $table) {
+            $table->dropForeign(['etablissement_id']);
+            $table->dropColumn('etablissement_id');
+        });
+    }
+
+};
+```
+
+📜 LOGS RÉCENTS
+```log
+#15 /media/farid/amees/app/Http/Middleware/Admin.php(22): Illuminate\\Pipeline\\Pipeline->{closure:Illuminate\\Pipeline\\Pipeline::prepareDestination():178}()
+#16 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\\Http\\Middleware\\Admin->handle()
+#17 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Routing/Middleware/SubstituteBindings.php(52): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}()
+#18 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Routing\\Middleware\\SubstituteBindings->handle()
+#19 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Auth/Middleware/Authenticate.php(63): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}()
+#20 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Auth\\Middleware\\Authenticate->handle()
+#21 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/PreventRequestForgery.php(104): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}()
+#22 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\PreventRequestForgery->handle()
+#23 /media/farid/amees/vendor/laravel/framework/src/Illuminate/View/Middleware/ShareErrorsFromSession.php(48): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}()
+#24 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\View\\Middleware\\ShareErrorsFromSession->handle()
+#25 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Session/Middleware/StartSession.php(120): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}()
+#26 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Session/Middleware/StartSession.php(63): Illuminate\\Session\\Middleware\\StartSession->handleStatefulRequest()
+#27 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Session\\Middleware\\StartSession->handle()
+#28 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/AddQueuedCookiesToResponse.php(36): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}()
+#29 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse->handle()
+#30 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/EncryptCookies.php(74): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}()
+#31 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Cookie\\Middleware\\EncryptCookies->handle()
+#32 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}()
+#33 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Routing/Router.php(821): Illuminate\\Pipeline\\Pipeline->then()
+#34 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Routing/Router.php(800): Illuminate\\Routing\\Router->runRouteWithinStack()
+#35 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Routing/Router.php(764): Illuminate\\Routing\\Router->runRoute()
+#36 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Routing/Router.php(753): Illuminate\\Routing\\Router->dispatchToRoute()
+#37 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(200): Illuminate\\Routing\\Router->dispatch()
+#38 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(180): Illuminate\\Foundation\\Http\\Kernel->{closure:Illuminate\\Foundation\\Http\\Kernel::dispatchToRouter():197}()
+#39 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->{closure:Illuminate\\Pipeline\\Pipeline::prepareDestination():178}()
+#40 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ConvertEmptyStringsToNull.php(31): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle()
+#41 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\ConvertEmptyStringsToNull->handle()
+#42 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}()
+#43 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TrimStrings.php(51): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle()
+#44 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\TrimStrings->handle()
+#45 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePostSize.php(27): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}()
+#46 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\ValidatePostSize->handle()
+#47 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/PreventRequestsDuringMaintenance.php(109): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}()
+#48 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\PreventRequestsDuringMaintenance->handle()
+#49 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Http/Middleware/HandleCors.php(61): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}()
+#50 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\HandleCors->handle()
+#51 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Http/Middleware/TrustProxies.php(58): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}()
+#52 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\TrustProxies->handle()
+#53 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/InvokeDeferredCallbacks.php(22): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}()
+#54 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\InvokeDeferredCallbacks->handle()
+#55 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePathEncoding.php(28): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}()
+#56 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\ValidatePathEncoding->handle()
+#57 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}()
+#58 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(175): Illuminate\\Pipeline\\Pipeline->then()
+#59 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(144): Illuminate\\Foundation\\Http\\Kernel->sendRequestThroughRouter()
+#60 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1220): Illuminate\\Foundation\\Http\\Kernel->handle()
+#61 /media/farid/amees/public/index.php(20): Illuminate\\Foundation\\Application->handleRequest()
+#62 /media/farid/amees/vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php(23): require_once('...')
+#63 {main}
+"} 
+```
+
+💾 TESTS BDD
+```bash
+User count: 4
+Epreuve count: 8
+```
+
+🧹 CACHE CLEAR
+
+   INFO  Clearing cached bootstrap files.  
+
+  config ............................................................................................................................... 2.31ms DONE
+  cache ............................................................................................................................... 22.59ms DONE
+  compiled ............................................................................................................................. 3.58ms DONE
+  events ............................................................................................................................... 1.16ms DONE
+  routes ............................................................................................................................... 0.85ms DONE
+  views ................................................................................................................................ 7.73ms DONE
+
+
+✅ FICHIER PRÊT : laravel-all.txt (40K)

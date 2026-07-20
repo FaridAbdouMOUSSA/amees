@@ -6,67 +6,82 @@
     <title>@yield('title', 'Admin AMEES')</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    @stack('styles')
+    <style>
+        :root {
+            --primary: #0d47a1;
+            --gradient: linear-gradient(135deg, #0d47a1, #1976d2);
+        }
+        .navbar-admin {
+            background: var(--gradient) !important;
+        }
+        .brand-amees {
+            color: #ffd700;
+            font-weight: 900;
+            letter-spacing: 2px;
+        }
+        .nav-btn {
+            transition: all 0.3s ease;
+        }
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+    </style>
 </head>
 <body class="bg-light">
-<body class="bg-light">
-    {{-- 🔔 NOTIFICATIONS --}}
-    @if(session('success'))
-    <div class="alert alert-success alert-dismissible fade show position-fixed" 
-         style="top: 80px; right: 20px; z-index: 9999; min-width: 350px;" role="alert">
-        <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    @endif
-    @if(session('error'))
-    <div class="alert alert-danger alert-dismissible fade show position-fixed" 
-         style="top: 80px; right: 20px; z-index: 9999; min-width: 350px;" role="alert">
-        <i class="fas fa-exclamation-triangle me-2"></i>{{ session('error') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    @endif
-    @if(session('warning'))
-    <div class="alert alert-warning alert-dismissible fade show position-fixed" 
-         style="top: 80px; right: 20px; z-index: 9999; min-width: 350px;" role="alert">
-        <i class="fas fa-exclamation-circle me-2"></i>{{ session('warning') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    @endif
 
-    <!-- NAVBAR -->    
-<!-- NAVBAR ADMIN (identique au dashboard) -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-lg">
-    <div class="container-fluid">
-        <a class="navbar-brand fw-bold fs-4" href="{{ route('admin.dashboard') }}">
-            <i class="fas fa-cogs me-2"></i>🛠 ADMIN AMEES
+<!-- NAVBAR PROPRE -->
+<nav class="navbar navbar-expand-lg navbar-dark shadow-lg navbar-admin">
+    <div class="container-fluid px-5">
+        <!-- PARTIE GAUCHE - Logo -->
+        <a class="navbar-brand d-flex align-items-center gap-2 me-5" href="{{ route('admin.dashboard') }}">
+            <div class="rounded-circle bg-warning d-flex align-items-center justify-content-center" style="width:48px;height:48px;">
+                <i class="fas fa-graduation-cap text-dark fs-4"></i>
+            </div>
+            <div>
+                <span class="brand-amees fs-3">AMEES</span>
+                <span class="d-block" style="font-size:0.75rem; opacity:0.9;">Administration</span>
+            </div>
         </a>
-        <div class="navbar-nav ms-auto">
-            <a class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}">
-                <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+
+        <!-- BOUTONS NAVIGATION (Centre) -->
+        <div class="d-flex gap-3 mx-auto">
+            <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-light rounded-pill px-4 nav-btn">
+                <i class="fas fa-tachometer-alt me-2"></i> Dashboard
             </a>
-            <a class="nav-link {{ request()->routeIs('classement') ? 'active' : '' }}" href="{{ route('classement') }}">
-                <i class="fas fa-trophy me-1"></i>Classement
+            <a href="{{ route('epreuves.index') }}" class="btn btn-outline-light rounded-pill px-4 nav-btn">
+                <i class="fas fa-file-pdf me-2"></i> Épreuves
             </a>
-            <a class="nav-link {{ request()->routeIs('epreuves.*') ? 'active' : '' }}" href="{{ route('epreuves.index') }}">
-                <i class="fas fa-file-pdf me-1"></i>Épreuves
-            </a>
-            <a class="nav-link {{ request()->routeIs('admin.etablissements') ? 'active' : '' }}" href="{{ route('admin.etablissements') }}">
-                <i class="fas fa-school me-1"></i>Établissements
-            </a>
-            <form method="POST" action="{{ route('logout') }}" class="d-inline">
-                @csrf
-                <button class="nav-link btn btn-outline-light">🚪 Déconnexion</button>
-            </form>
+        </div>
+
+        <!-- PARTIE DROITE - Utilisateur -->
+        <div class="ms-auto">
+            <div class="dropdown">
+                <button class="btn btn-outline-light dropdown-toggle d-flex align-items-center gap-2"
+                        type="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-user-circle me-1"></i>
+                    {{ Str::limit(auth()->user()->name ?? 'Admin', 18) }}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="dropdown-item text-danger">
+                                <i class="fas fa-sign-out-alt me-2"></i>Déconnexion
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
         </div>
     </div>
 </nav>
 
-<!-- CONTENU PRINCIPAL -->
-<main class="container-fluid py-4">
+<!-- CONTENU DES PAGES -->
+<main class="py-4">
     @yield('content')
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-@stack('scripts')
 </body>
 </html>
